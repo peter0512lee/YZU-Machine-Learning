@@ -27,3 +27,15 @@ Regression
 ### HW3
 
 Regression(sklearn)
+
+## Week5
+
+放假
+
+## Week6
+
+Computational Learning Theory(~p19)
+
+## HW4
+
+SVM(sklearn)
