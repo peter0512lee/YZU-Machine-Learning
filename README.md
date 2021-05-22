@@ -15,7 +15,7 @@
 | 9    | Decision Tree and Random Foreast        |
 | 10   | Decision Tree and Random Foreast        |
 | 11   | DNN                                     |
-| 21   | DNN                                     |
+| 12   | DNN                                     |
 
 ## Homework
 
