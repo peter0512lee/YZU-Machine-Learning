@@ -1,0 +1,3 @@
+PassengerId,Pclass,Name,Sex,Age,SibSp,Parch,Ticket,Fare,Cabin,Embarked
+1,3,"Jack, Mr. ",male,23.0,0,0,A/5 21171,5.0,F87,S
+2,1,"Rose, Miss. ",female,20.0,0,1,PC 17599,100.0,C85,S
