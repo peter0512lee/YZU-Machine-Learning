@@ -1,0 +1,1901 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:16.225405Z",
+     "iopub.status.busy": "2021-06-18T06:15:16.224317Z",
+     "iopub.status.idle": "2021-06-18T06:15:24.691160Z",
+     "shell.execute_reply": "2021-06-18T06:15:24.691673Z"
+    },
+    "papermill": {
+     "duration": 8.505072,
+     "end_time": "2021-06-18T06:15:24.692045",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:16.186973",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# import libraries \r\n",
+    "import pandas as pd\r\n",
+    "import numpy as np\r\n",
+    "import warnings \r\n",
+    "import numpy as np\r\n",
+    "import matplotlib.pyplot as plt\r\n",
+    "import seaborn as sns\r\n",
+    "warnings.filterwarnings(\"ignore\")\r\n",
+    "from string import ascii_letters\r\n",
+    "import plotly.express as px\r\n",
+    "import sys\r\n",
+    "import gc\r\n",
+    "import pickle\r\n",
+    "import time\r\n",
+    "\r\n",
+    "\r\n",
+    "from sklearn.preprocessing import StandardScaler, MinMaxScaler\r\n",
+    "from sklearn.preprocessing import LabelEncoder, OneHotEncoder\r\n",
+    "from sklearn.model_selection import train_test_split, StratifiedKFold, KFold\r\n",
+    "from sklearn.model_selection import RandomizedSearchCV, GridSearchCV\r\n",
+    "from sklearn.metrics import mean_squared_error\r\n",
+    "from sklearn.utils import resample\r\n",
+    "from sklearn.pipeline import Pipeline\r\n",
+    "\r\n",
+    "from tensorflow.keras.models import Sequential\r\n",
+    "from tensorflow.keras.layers import LSTM, Dense, Flatten, Dropout\r\n",
+    "from tensorflow.keras.layers import LeakyReLU, PReLU, ELU\r\n",
+    "from keras.utils import np_utils\r\n",
+    "\r\n",
+    "# algorithmic library\r\n",
+    "\r\n",
+    "from sklearn.ensemble import RandomForestRegressor\r\n",
+    "from sklearn.preprocessing import PowerTransformer\r\n",
+    "\r\n",
+    "from xgboost import XGBRegressor\r\n",
+    "from xgboost import plot_importance"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:24.760596Z",
+     "iopub.status.busy": "2021-06-18T06:15:24.759957Z",
+     "iopub.status.idle": "2021-06-18T06:15:27.607664Z",
+     "shell.execute_reply": "2021-06-18T06:15:27.607075Z"
+    },
+    "papermill": {
+     "duration": 2.882795,
+     "end_time": "2021-06-18T06:15:27.607847",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:24.725052",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Load all the data sets \r\n",
+    "\r\n",
+    "df_train = pd.read_csv('data/sales_train.csv')\r\n",
+    "df_test = pd.read_csv('data/test.csv')\r\n",
+    "df_submission = pd.read_csv('data/sample_submission.csv')\r\n",
+    "df_shop = pd.read_csv('data/shops.csv')\r\n",
+    "df_item_cat = pd.read_csv('data/item_categories.csv')\r\n",
+    "df_item = pd.read_csv('data/items.csv')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:27.683754Z",
+     "iopub.status.busy": "2021-06-18T06:15:27.683094Z",
+     "iopub.status.idle": "2021-06-18T06:15:27.702628Z",
+     "shell.execute_reply": "2021-06-18T06:15:27.701715Z"
+    },
+    "papermill": {
+     "duration": 0.061393,
+     "end_time": "2021-06-18T06:15:27.702832",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:27.641439",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:28.383337Z",
+     "iopub.status.busy": "2021-06-18T06:15:28.382635Z",
+     "iopub.status.idle": "2021-06-18T06:15:29.077049Z",
+     "shell.execute_reply": "2021-06-18T06:15:29.076493Z"
+    },
+    "papermill": {
+     "duration": 1.34042,
+     "end_time": "2021-06-18T06:15:29.077202",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:27.736782",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train.describe(include='all').T"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:29.322417Z",
+     "iopub.status.busy": "2021-06-18T06:15:29.321467Z",
+     "iopub.status.idle": "2021-06-18T06:15:29.724843Z",
+     "shell.execute_reply": "2021-06-18T06:15:29.724227Z"
+    },
+    "papermill": {
+     "duration": 0.613457,
+     "end_time": "2021-06-18T06:15:29.724997",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:29.111540",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train['date'] = pd.to_datetime(df_train['date'], format='%d.%m.%Y')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:29.844111Z",
+     "iopub.status.busy": "2021-06-18T06:15:29.843432Z",
+     "iopub.status.idle": "2021-06-18T06:15:30.252177Z",
+     "shell.execute_reply": "2021-06-18T06:15:30.251025Z"
+    },
+    "papermill": {
+     "duration": 0.493288,
+     "end_time": "2021-06-18T06:15:30.252338",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:29.759050",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train.describe().T"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:30.330691Z",
+     "iopub.status.busy": "2021-06-18T06:15:30.329537Z",
+     "iopub.status.idle": "2021-06-18T06:15:30.365692Z",
+     "shell.execute_reply": "2021-06-18T06:15:30.366165Z"
+    },
+    "papermill": {
+     "duration": 0.078149,
+     "end_time": "2021-06-18T06:15:30.366343",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:30.288194",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train.isnull().sum()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:30.444155Z",
+     "iopub.status.busy": "2021-06-18T06:15:30.443174Z",
+     "iopub.status.idle": "2021-06-18T06:15:30.740133Z",
+     "shell.execute_reply": "2021-06-18T06:15:30.739490Z"
+    },
+    "papermill": {
+     "duration": 0.33744,
+     "end_time": "2021-06-18T06:15:30.740274",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:30.402834",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train.nunique()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:30.821002Z",
+     "iopub.status.busy": "2021-06-18T06:15:30.820160Z",
+     "iopub.status.idle": "2021-06-18T06:15:30.830490Z",
+     "shell.execute_reply": "2021-06-18T06:15:30.831031Z"
+    },
+    "papermill": {
+     "duration": 0.055408,
+     "end_time": "2021-06-18T06:15:30.831243",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:30.775835",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:30.910151Z",
+     "iopub.status.busy": "2021-06-18T06:15:30.909116Z",
+     "iopub.status.idle": "2021-06-18T06:15:31.711624Z",
+     "shell.execute_reply": "2021-06-18T06:15:31.710515Z"
+    },
+    "papermill": {
+     "duration": 0.844175,
+     "end_time": "2021-06-18T06:15:31.711806",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:30.867631",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=df_train.item_cnt_day)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:31.794953Z",
+     "iopub.status.busy": "2021-06-18T06:15:31.794218Z",
+     "iopub.status.idle": "2021-06-18T06:15:32.515588Z",
+     "shell.execute_reply": "2021-06-18T06:15:32.514997Z"
+    },
+    "papermill": {
+     "duration": 0.764438,
+     "end_time": "2021-06-18T06:15:32.515757",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:31.751319",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=df_train.item_price)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:32.602426Z",
+     "iopub.status.busy": "2021-06-18T06:15:32.601297Z",
+     "iopub.status.idle": "2021-06-18T06:15:32.714091Z",
+     "shell.execute_reply": "2021-06-18T06:15:32.714623Z"
+    },
+    "papermill": {
+     "duration": 0.160691,
+     "end_time": "2021-06-18T06:15:32.714816",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:32.554125",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train = df_train[(df_train.item_price < 300000 )& (df_train.item_cnt_day < 1000)]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:32.797319Z",
+     "iopub.status.busy": "2021-06-18T06:15:32.796617Z",
+     "iopub.status.idle": "2021-06-18T06:15:32.991678Z",
+     "shell.execute_reply": "2021-06-18T06:15:32.991080Z"
+    },
+    "papermill": {
+     "duration": 0.23773,
+     "end_time": "2021-06-18T06:15:32.991846",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:32.754116",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train = df_train[df_train.item_price > 0].reset_index(drop = True)\n",
+    "df_train.loc[df_train.item_cnt_day < 1, \"item_cnt_day\"] = 0"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:33.074563Z",
+     "iopub.status.busy": "2021-06-18T06:15:33.073905Z",
+     "iopub.status.idle": "2021-06-18T06:15:33.813995Z",
+     "shell.execute_reply": "2021-06-18T06:15:33.813120Z"
+    },
+    "papermill": {
+     "duration": 0.783106,
+     "end_time": "2021-06-18T06:15:33.814211",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:33.031105",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=df_train.item_price)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:33.909902Z",
+     "iopub.status.busy": "2021-06-18T06:15:33.908537Z",
+     "iopub.status.idle": "2021-06-18T06:15:34.699345Z",
+     "shell.execute_reply": "2021-06-18T06:15:34.698767Z"
+    },
+    "papermill": {
+     "duration": 0.837024,
+     "end_time": "2021-06-18T06:15:34.699504",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:33.862480",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "sns.boxplot(x=df_train.item_cnt_day)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:34.788711Z",
+     "iopub.status.busy": "2021-06-18T06:15:34.788040Z",
+     "iopub.status.idle": "2021-06-18T06:15:34.871855Z",
+     "shell.execute_reply": "2021-06-18T06:15:34.871197Z"
+    },
+    "papermill": {
+     "duration": 0.131899,
+     "end_time": "2021-06-18T06:15:34.872011",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:34.740112",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "df_train.loc[df_train.shop_id == 0, 'shop_id'] = 57\n",
+    "df_test.loc[df_test.shop_id == 0, 'shop_id'] = 57\n",
+    "\n",
+    "df_train.loc[df_train.shop_id == 1, 'shop_id'] = 58\n",
+    "df_test.loc[df_test.shop_id == 1, 'shop_id'] = 58\n",
+    "\n",
+    "df_train.loc[df_train.shop_id == 10, 'shop_id'] = 11\n",
+    "df_test.loc[df_test.shop_id == 10, 'shop_id'] = 11"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:34.966638Z",
+     "iopub.status.busy": "2021-06-18T06:15:34.965905Z",
+     "iopub.status.idle": "2021-06-18T06:15:34.969672Z",
+     "shell.execute_reply": "2021-06-18T06:15:34.969110Z"
+    },
+    "papermill": {
+     "duration": 0.056606,
+     "end_time": "2021-06-18T06:15:34.969832",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:34.913226",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_shop.loc[ df_shop.shop_name == 'Сергиев Посад ТЦ \"7Я\"',\"shop_name\" ] = 'СергиевПосад ТЦ \"7Я\"'\n",
+    "df_shop[\"city\"] = df_shop.shop_name.str.split(\" \").map( lambda x: x[0] )\n",
+    "df_shop[\"category\"] = df_shop.shop_name.str.split(\" \").map( lambda x: x[1] )\n",
+    "df_shop.loc[df_shop.city == \"!Якутск\", \"city\"] = \"Якутск\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.068170Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.067438Z",
+     "iopub.status.idle": "2021-06-18T06:15:35.071076Z",
+     "shell.execute_reply": "2021-06-18T06:15:35.070356Z"
+    },
+    "papermill": {
+     "duration": 0.058858,
+     "end_time": "2021-06-18T06:15:35.071225",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.012367",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "category = []\n",
+    "for cat in df_shop.category.unique():\n",
+    "    if len(df_shop[df_shop.category == cat]) >= 5:\n",
+    "        category.append(cat)\n",
+    "df_shop.category = df_shop.category.apply( lambda x: x if (x in category) else \"other\" )\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.165392Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.164720Z",
+     "iopub.status.idle": "2021-06-18T06:15:35.168031Z",
+     "shell.execute_reply": "2021-06-18T06:15:35.167440Z"
+    },
+    "papermill": {
+     "duration": 0.054455,
+     "end_time": "2021-06-18T06:15:35.168176",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.113721",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.preprocessing import LabelEncoder\n",
+    "df_shop[\"shop_category\"] = LabelEncoder().fit_transform( df_shop.category )\n",
+    "df_shop[\"shop_city\"] = LabelEncoder().fit_transform( df_shop.city )\n",
+    "df_shop = df_shop[[\"shop_id\", \"shop_category\", \"shop_city\"]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.262779Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.262073Z",
+     "iopub.status.idle": "2021-06-18T06:15:35.265085Z",
+     "shell.execute_reply": "2021-06-18T06:15:35.264443Z"
+    },
+    "papermill": {
+     "duration": 0.052522,
+     "end_time": "2021-06-18T06:15:35.265227",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.212705",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_item_cat[\"type_code\"] = df_item_cat.item_category_name.apply( lambda x: x.split(\" \")[0] ).astype(str)\n",
+    "df_item_cat.loc[ (df_item_cat.type_code == \"Игровые\")| (df_item_cat.type_code == \"Аксессуары\"), \"category\" ] = \"Игры\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.351242Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.350562Z",
+     "iopub.status.idle": "2021-06-18T06:15:35.365158Z",
+     "shell.execute_reply": "2021-06-18T06:15:35.364590Z"
+    },
+    "papermill": {
+     "duration": 0.058867,
+     "end_time": "2021-06-18T06:15:35.365313",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.306446",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "category = []\n",
+    "for cat in df_item_cat.type_code.unique():\n",
+    "    if len(df_item_cat[df_item_cat.type_code == cat]) >= 5: \n",
+    "        category.append( cat )\n",
+    "df_item_cat.type_code = df_item_cat.type_code.apply(lambda x: x if (x in category) else \"etc\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.462825Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.461578Z",
+     "iopub.status.idle": "2021-06-18T06:15:35.469362Z",
+     "shell.execute_reply": "2021-06-18T06:15:35.468620Z"
+    },
+    "papermill": {
+     "duration": 0.060624,
+     "end_time": "2021-06-18T06:15:35.469512",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.408888",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_item_cat.type_code = LabelEncoder().fit_transform(df_item_cat.type_code)\n",
+    "df_item_cat[\"split\"] = df_item_cat.item_category_name.apply(lambda x: x.split(\"-\"))\n",
+    "df_item_cat[\"subtype\"] = df_item_cat.split.apply(lambda x: x[1].strip() if len(x) > 1 else x[0].strip())\n",
+    "df_item_cat[\"subtype_code\"] = LabelEncoder().fit_transform( df_item_cat[\"subtype\"] )\n",
+    "df_item_cat = df_item_cat[[\"item_category_id\", \"subtype_code\", \"type_code\"]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.561783Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.561102Z",
+     "iopub.status.idle": "2021-06-18T06:15:35.567154Z",
+     "shell.execute_reply": "2021-06-18T06:15:35.567811Z"
+    },
+    "papermill": {
+     "duration": 0.055485,
+     "end_time": "2021-06-18T06:15:35.567998",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.512513",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "import re\n",
+    "def name_correction(x):\n",
+    "    x = x.lower() # all letters lower case\n",
+    "    x = x.partition('[')[0] # partition by square brackets\n",
+    "    x = x.partition('(')[0] # partition by curly brackets\n",
+    "    x = re.sub('[^A-Za-z0-9А-Яа-я]+', ' ', x) # remove special characters\n",
+    "    x = x.replace('  ', ' ') # replace double spaces with single spaces\n",
+    "    x = x.strip() # remove leading and trailing white space\n",
+    "    return x"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:35.659349Z",
+     "iopub.status.busy": "2021-06-18T06:15:35.658664Z",
+     "iopub.status.idle": "2021-06-18T06:15:36.041844Z",
+     "shell.execute_reply": "2021-06-18T06:15:36.042403Z"
+    },
+    "papermill": {
+     "duration": 0.429907,
+     "end_time": "2021-06-18T06:15:36.042600",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:35.612693",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_item[\"name1\"], df_item[\"name2\"] = df_item.item_name.str.split(\"[\", 1).str\n",
+    "df_item[\"name1\"], df_item[\"name3\"] = df_item.item_name.str.split(\"(\", 1).str\n",
+    "\n",
+    "\n",
+    "df_item[\"name2\"] = df_item.name2.str.replace('[^A-Za-z0-9А-Яа-я]+', \" \").str.lower()\n",
+    "df_item[\"name3\"] = df_item.name3.str.replace('[^A-Za-z0-9А-Яа-я]+', \" \").str.lower()\n",
+    "\n",
+    "# fill nulls with '0'\n",
+    "df_item = df_item.fillna('0')\n",
+    "\n",
+    "df_item[\"item_name\"] = df_item[\"item_name\"].apply(lambda x: name_correction(x))\n",
+    "\n",
+    "# return all characters except the last if name 2 is not \"0\" - the closing bracket\n",
+    "df_item.name2 = df_item.name2.apply( lambda x: x[:-1] if x !=\"0\" else \"0\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:36.131332Z",
+     "iopub.status.busy": "2021-06-18T06:15:36.130647Z",
+     "iopub.status.idle": "2021-06-18T06:15:36.191344Z",
+     "shell.execute_reply": "2021-06-18T06:15:36.190792Z"
+    },
+    "papermill": {
+     "duration": 0.107322,
+     "end_time": "2021-06-18T06:15:36.191496",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:36.084174",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_item[\"type\"] = df_item.name2.apply(lambda x: x[0:8] if x.split(\" \")[0] == \"xbox\" else x.split(\" \")[0] )\n",
+    "df_item.loc[(df_item.type == \"x360\") | (df_item.type == \"xbox360\") | (df_item.type == \"xbox 360\") ,\"type\"] = \"xbox 360\"\n",
+    "df_item.loc[ df_item.type == \"\", \"type\"] = \"mac\"\n",
+    "df_item.type = df_item.type.apply( lambda x: x.replace(\" \", \"\") )\n",
+    "df_item.loc[ (df_item.type == 'pc' )| (df_item.type == 'pс') | (df_item.type == \"pc\"), \"type\" ] = \"pc\"\n",
+    "df_item.loc[ df_item.type == 'рs3' , \"type\"] = \"ps3\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:36.287017Z",
+     "iopub.status.busy": "2021-06-18T06:15:36.286315Z",
+     "iopub.status.idle": "2021-06-18T06:15:36.322069Z",
+     "shell.execute_reply": "2021-06-18T06:15:36.321450Z"
+    },
+    "papermill": {
+     "duration": 0.087066,
+     "end_time": "2021-06-18T06:15:36.322216",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:36.235150",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "group_sum = df_item.groupby([\"type\"]).agg({\"item_id\": \"count\"})\n",
+    "group_sum = group_sum.reset_index()\n",
+    "drop_cols = []\n",
+    "for cat in group_sum.type.unique():\n",
+    "    if group_sum.loc[(group_sum.type == cat), \"item_id\"].values[0] <40:\n",
+    "        drop_cols.append(cat)\n",
+    "df_item.name2 = df_item.name2.apply( lambda x: \"other\" if (x in drop_cols) else x )\n",
+    "df_item = df_item.drop([\"type\"], axis = 1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:36.420006Z",
+     "iopub.status.busy": "2021-06-18T06:15:36.419275Z",
+     "iopub.status.idle": "2021-06-18T06:15:36.449722Z",
+     "shell.execute_reply": "2021-06-18T06:15:36.449062Z"
+    },
+    "papermill": {
+     "duration": 0.085412,
+     "end_time": "2021-06-18T06:15:36.449897",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:36.364485",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_item.name2 = LabelEncoder().fit_transform(df_item.name2)\n",
+    "df_item.name3 = LabelEncoder().fit_transform(df_item.name3)\n",
+    "\n",
+    "df_item.drop([\"item_name\", \"name1\"],axis = 1, inplace= True)\n",
+    "df_item.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:15:36.545718Z",
+     "iopub.status.busy": "2021-06-18T06:15:36.544836Z",
+     "iopub.status.idle": "2021-06-18T06:16:02.934207Z",
+     "shell.execute_reply": "2021-06-18T06:16:02.934805Z"
+    },
+    "papermill": {
+     "duration": 26.441643,
+     "end_time": "2021-06-18T06:16:02.935013",
+     "exception": false,
+     "start_time": "2021-06-18T06:15:36.493370",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "from itertools import product\n",
+    "import time\n",
+    "ts = time.time()\n",
+    "matrix = []\n",
+    "cols  = [\"date_block_num\", \"shop_id\", \"item_id\"]\n",
+    "for i in range(34):\n",
+    "    sales = df_train[df_train.date_block_num == i]\n",
+    "    matrix.append( np.array(list( product( [i], sales.shop_id.unique(), sales.item_id.unique() ) ), dtype = np.int16) )\n",
+    "\n",
+    "matrix = pd.DataFrame( np.vstack(matrix), columns = cols )\n",
+    "matrix[\"date_block_num\"] = matrix[\"date_block_num\"].astype(np.int8)\n",
+    "matrix[\"shop_id\"] = matrix[\"shop_id\"].astype(np.int8)\n",
+    "matrix[\"item_id\"] = matrix[\"item_id\"].astype(np.int16)\n",
+    "matrix.sort_values( cols, inplace = True )\n",
+    "time.time()- ts"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:03.037275Z",
+     "iopub.status.busy": "2021-06-18T06:16:03.036341Z",
+     "iopub.status.idle": "2021-06-18T06:16:03.054804Z",
+     "shell.execute_reply": "2021-06-18T06:16:03.054173Z"
+    },
+    "papermill": {
+     "duration": 0.077302,
+     "end_time": "2021-06-18T06:16:03.054993",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:02.977691",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_train[\"revenue\"] = df_train[\"item_cnt_day\"] * df_train[\"item_price\"]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:03.171026Z",
+     "iopub.status.busy": "2021-06-18T06:16:03.170330Z",
+     "iopub.status.idle": "2021-06-18T06:16:08.450145Z",
+     "shell.execute_reply": "2021-06-18T06:16:08.449573Z"
+    },
+    "papermill": {
+     "duration": 5.341395,
+     "end_time": "2021-06-18T06:16:08.450287",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:03.108892",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = df_train.groupby( [\"date_block_num\", \"shop_id\", \"item_id\"] ).agg( {\"item_cnt_day\": [\"sum\"]} )\n",
+    "group.columns = [\"item_cnt_month\"]\n",
+    "group.reset_index( inplace = True)\n",
+    "matrix = pd.merge( matrix, group, on = cols, how = \"left\" )\n",
+    "matrix[\"item_cnt_month\"] = matrix[\"item_cnt_month\"].fillna(0).astype(np.float16)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:08.544199Z",
+     "iopub.status.busy": "2021-06-18T06:16:08.543520Z",
+     "iopub.status.idle": "2021-06-18T06:16:08.550726Z",
+     "shell.execute_reply": "2021-06-18T06:16:08.550213Z"
+    },
+    "papermill": {
+     "duration": 0.058165,
+     "end_time": "2021-06-18T06:16:08.550892",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:08.492727",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "df_test[\"date_block_num\"] = 34\n",
+    "df_test[\"date_block_num\"] = df_test[\"date_block_num\"].astype(np.int8)\n",
+    "df_test[\"shop_id\"] = df_test.shop_id.astype(np.int8)\n",
+    "df_test[\"item_id\"] = df_test.item_id.astype(np.int16)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:08.644976Z",
+     "iopub.status.busy": "2021-06-18T06:16:08.644252Z",
+     "iopub.status.idle": "2021-06-18T06:16:08.701522Z",
+     "shell.execute_reply": "2021-06-18T06:16:08.702044Z"
+    },
+    "papermill": {
+     "duration": 0.107017,
+     "end_time": "2021-06-18T06:16:08.702248",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:08.595231",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "\n",
+    "matrix = pd.concat([matrix, df_test.drop([\"ID\"],axis = 1)], ignore_index=True, sort=False, keys=cols)\n",
+    "matrix.fillna( 0, inplace = True )\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:08.791417Z",
+     "iopub.status.busy": "2021-06-18T06:16:08.790800Z",
+     "iopub.status.idle": "2021-06-18T06:16:13.227408Z",
+     "shell.execute_reply": "2021-06-18T06:16:13.227952Z"
+    },
+    "papermill": {
+     "duration": 4.482682,
+     "end_time": "2021-06-18T06:16:13.228164",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:08.745482",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "matrix = pd.merge( matrix, df_shop, on = [\"shop_id\"], how = \"left\" )\n",
+    "matrix = pd.merge(matrix, df_item, on = [\"item_id\"], how = \"left\")\n",
+    "matrix = pd.merge( matrix, df_item_cat, on = [\"item_category_id\"], how = \"left\" )\n",
+    "matrix[\"shop_city\"] = matrix[\"shop_city\"].astype(np.int8)\n",
+    "matrix[\"shop_category\"] = matrix[\"shop_category\"].astype(np.int8)\n",
+    "matrix[\"item_category_id\"] = matrix[\"item_category_id\"].astype(np.int8)\n",
+    "matrix[\"subtype_code\"] = matrix[\"subtype_code\"].astype(np.int8)\n",
+    "matrix[\"name2\"] = matrix[\"name2\"].astype(np.int8)\n",
+    "matrix[\"name3\"] = matrix[\"name3\"].astype(np.int16)\n",
+    "matrix[\"type_code\"] = matrix[\"type_code\"].astype(np.int8)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:13.318795Z",
+     "iopub.status.busy": "2021-06-18T06:16:13.318167Z",
+     "iopub.status.idle": "2021-06-18T06:16:13.324417Z",
+     "shell.execute_reply": "2021-06-18T06:16:13.324948Z"
+    },
+    "papermill": {
+     "duration": 0.053335,
+     "end_time": "2021-06-18T06:16:13.325123",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:13.271788",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "def lag_feature( df,lags, cols ):\n",
+    "    for col in cols:\n",
+    "        print(col)\n",
+    "        tmp = df[[\"date_block_num\", \"shop_id\",\"item_id\",col ]]\n",
+    "        for i in lags:\n",
+    "            shifted = tmp.copy()\n",
+    "            shifted.columns = [\"date_block_num\", \"shop_id\", \"item_id\", col + \"_lag_\"+str(i)]\n",
+    "            shifted.date_block_num = shifted.date_block_num + i\n",
+    "            df = pd.merge(df, shifted, on=['date_block_num','shop_id','item_id'], how='left')\n",
+    "    return df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:13.416023Z",
+     "iopub.status.busy": "2021-06-18T06:16:13.415323Z",
+     "iopub.status.idle": "2021-06-18T06:16:38.939801Z",
+     "shell.execute_reply": "2021-06-18T06:16:38.940306Z"
+    },
+    "papermill": {
+     "duration": 25.572076,
+     "end_time": "2021-06-18T06:16:38.940489",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:13.368413",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "matrix = lag_feature( matrix, [1,2,3], [\"item_cnt_month\"] )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:39.035450Z",
+     "iopub.status.busy": "2021-06-18T06:16:39.034798Z",
+     "iopub.status.idle": "2021-06-18T06:16:51.378283Z",
+     "shell.execute_reply": "2021-06-18T06:16:51.377685Z"
+    },
+    "papermill": {
+     "duration": 12.391999,
+     "end_time": "2021-06-18T06:16:51.378443",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:38.986444",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = matrix.groupby( [\"date_block_num\"] ).agg({\"item_cnt_month\" : [\"mean\"]})\n",
+    "group.columns = [\"date_avg_item_cnt\"]\n",
+    "group.reset_index(inplace = True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on = [\"date_block_num\"], how = \"left\")\n",
+    "matrix.date_avg_item_cnt = matrix[\"date_avg_item_cnt\"].astype(np.float16)\n",
+    "matrix = lag_feature( matrix, [1], [\"date_avg_item_cnt\"] )\n",
+    "matrix.drop( [\"date_avg_item_cnt\"], axis = 1, inplace = True )\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:16:51.475287Z",
+     "iopub.status.busy": "2021-06-18T06:16:51.474585Z",
+     "iopub.status.idle": "2021-06-18T06:17:23.692763Z",
+     "shell.execute_reply": "2021-06-18T06:17:23.693266Z"
+    },
+    "papermill": {
+     "duration": 32.270269,
+     "end_time": "2021-06-18T06:17:23.693450",
+     "exception": false,
+     "start_time": "2021-06-18T06:16:51.423181",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "ts = time.time()\n",
+    "group = matrix.groupby(['date_block_num', 'item_id']).agg({'item_cnt_month': ['mean']})\n",
+    "group.columns = [ 'date_item_avg_item_cnt' ]\n",
+    "group.reset_index(inplace=True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on=['date_block_num','item_id'], how='left')\n",
+    "matrix.date_item_avg_item_cnt = matrix['date_item_avg_item_cnt'].astype(np.float16)\n",
+    "matrix = lag_feature(matrix, [1,2,3], ['date_item_avg_item_cnt'])\n",
+    "matrix.drop(['date_item_avg_item_cnt'], axis=1, inplace=True)\n",
+    "time.time() - ts"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:17:23.795903Z",
+     "iopub.status.busy": "2021-06-18T06:17:23.795003Z",
+     "iopub.status.idle": "2021-06-18T06:17:56.742664Z",
+     "shell.execute_reply": "2021-06-18T06:17:56.743198Z"
+    },
+    "papermill": {
+     "duration": 33.001286,
+     "end_time": "2021-06-18T06:17:56.743379",
+     "exception": false,
+     "start_time": "2021-06-18T06:17:23.742093",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = matrix.groupby( [\"date_block_num\",\"shop_id\"] ).agg({\"item_cnt_month\" : [\"mean\"]})\n",
+    "group.columns = [\"date_shop_avg_item_cnt\"]\n",
+    "group.reset_index(inplace = True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on = [\"date_block_num\",\"shop_id\"], how = \"left\")\n",
+    "matrix.date_avg_item_cnt = matrix[\"date_shop_avg_item_cnt\"].astype(np.float16)\n",
+    "matrix = lag_feature( matrix, [1,2,3], [\"date_shop_avg_item_cnt\"] )\n",
+    "matrix.drop( [\"date_shop_avg_item_cnt\"], axis = 1, inplace = True )\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:17:56.845245Z",
+     "iopub.status.busy": "2021-06-18T06:17:56.844283Z",
+     "iopub.status.idle": "2021-06-18T06:18:41.609757Z",
+     "shell.execute_reply": "2021-06-18T06:18:41.609040Z"
+    },
+    "papermill": {
+     "duration": 44.820334,
+     "end_time": "2021-06-18T06:18:41.609919",
+     "exception": false,
+     "start_time": "2021-06-18T06:17:56.789585",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = matrix.groupby( [\"date_block_num\",\"shop_id\",\"item_id\"] ).agg({\"item_cnt_month\" : [\"mean\"]})\n",
+    "group.columns = [\"date_shop_item_avg_item_cnt\"]\n",
+    "group.reset_index(inplace = True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on = [\"date_block_num\",\"shop_id\",\"item_id\"], how = \"left\")\n",
+    "matrix.date_avg_item_cnt = matrix[\"date_shop_item_avg_item_cnt\"].astype(np.float16)\n",
+    "matrix = lag_feature( matrix, [1,2,3], [\"date_shop_item_avg_item_cnt\"] )\n",
+    "matrix.drop( [\"date_shop_item_avg_item_cnt\"], axis = 1, inplace = True )\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:18:41.712116Z",
+     "iopub.status.busy": "2021-06-18T06:18:41.711429Z",
+     "iopub.status.idle": "2021-06-18T06:18:58.902514Z",
+     "shell.execute_reply": "2021-06-18T06:18:58.901927Z"
+    },
+    "papermill": {
+     "duration": 17.24491,
+     "end_time": "2021-06-18T06:18:58.902681",
+     "exception": false,
+     "start_time": "2021-06-18T06:18:41.657771",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = matrix.groupby(['date_block_num', 'shop_id', 'subtype_code']).agg({'item_cnt_month': ['mean']})\n",
+    "group.columns = ['date_shop_subtype_avg_item_cnt']\n",
+    "group.reset_index(inplace=True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on=['date_block_num', 'shop_id', 'subtype_code'], how='left')\n",
+    "matrix.date_shop_subtype_avg_item_cnt = matrix['date_shop_subtype_avg_item_cnt'].astype(np.float16)\n",
+    "matrix = lag_feature(matrix, [1], ['date_shop_subtype_avg_item_cnt'])\n",
+    "matrix.drop(['date_shop_subtype_avg_item_cnt'], axis=1, inplace=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:18:59.004766Z",
+     "iopub.status.busy": "2021-06-18T06:18:59.003949Z",
+     "iopub.status.idle": "2021-06-18T06:19:16.056319Z",
+     "shell.execute_reply": "2021-06-18T06:19:16.056823Z"
+    },
+    "papermill": {
+     "duration": 17.107657,
+     "end_time": "2021-06-18T06:19:16.057007",
+     "exception": false,
+     "start_time": "2021-06-18T06:18:58.949350",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = matrix.groupby(['date_block_num', 'shop_city']).agg({'item_cnt_month': ['mean']})\n",
+    "group.columns = ['date_city_avg_item_cnt']\n",
+    "group.reset_index(inplace=True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on=['date_block_num', \"shop_city\"], how='left')\n",
+    "matrix.date_city_avg_item_cnt = matrix['date_city_avg_item_cnt'].astype(np.float16)\n",
+    "matrix = lag_feature(matrix, [1], ['date_city_avg_item_cnt'])\n",
+    "matrix.drop(['date_city_avg_item_cnt'], axis=1, inplace=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:19:16.161292Z",
+     "iopub.status.busy": "2021-06-18T06:19:16.160305Z",
+     "iopub.status.idle": "2021-06-18T06:19:40.940644Z",
+     "shell.execute_reply": "2021-06-18T06:19:40.941220Z"
+    },
+    "papermill": {
+     "duration": 24.83344,
+     "end_time": "2021-06-18T06:19:40.941399",
+     "exception": false,
+     "start_time": "2021-06-18T06:19:16.107959",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = matrix.groupby(['date_block_num', 'item_id', 'shop_city']).agg({'item_cnt_month': ['mean']})\n",
+    "group.columns = [ 'date_item_city_avg_item_cnt' ]\n",
+    "group.reset_index(inplace=True)\n",
+    "\n",
+    "matrix = pd.merge(matrix, group, on=['date_block_num', 'item_id', 'shop_city'], how='left')\n",
+    "matrix.date_item_city_avg_item_cnt = matrix['date_item_city_avg_item_cnt'].astype(np.float16)\n",
+    "matrix = lag_feature(matrix, [1], ['date_item_city_avg_item_cnt'])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:19:41.041060Z",
+     "iopub.status.busy": "2021-06-18T06:19:41.039962Z",
+     "iopub.status.idle": "2021-06-18T06:23:54.372014Z",
+     "shell.execute_reply": "2021-06-18T06:23:54.372545Z"
+    },
+    "papermill": {
+     "duration": 253.384525,
+     "end_time": "2021-06-18T06:23:54.372783",
+     "exception": false,
+     "start_time": "2021-06-18T06:19:40.988258",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = df_train.groupby( [\"item_id\"] ).agg({\"item_price\": [\"mean\"]})\n",
+    "group.columns = [\"item_avg_item_price\"]\n",
+    "group.reset_index(inplace = True)\n",
+    "\n",
+    "matrix = matrix.merge( group, on = [\"item_id\"], how = \"left\" )\n",
+    "matrix[\"item_avg_item_price\"] = matrix.item_avg_item_price.astype(np.float16)\n",
+    "\n",
+    "\n",
+    "group = df_train.groupby( [\"date_block_num\",\"item_id\"] ).agg( {\"item_price\": [\"mean\"]} )\n",
+    "group.columns = [\"date_item_avg_item_price\"]\n",
+    "group.reset_index(inplace = True)\n",
+    "\n",
+    "matrix = matrix.merge(group, on = [\"date_block_num\",\"item_id\"], how = \"left\")\n",
+    "matrix[\"date_item_avg_item_price\"] = matrix.date_item_avg_item_price.astype(np.float16)\n",
+    "lags = [1, 2, 3]\n",
+    "matrix = lag_feature( matrix, lags, [\"date_item_avg_item_price\"] )\n",
+    "for i in lags:\n",
+    "    matrix[\"delta_price_lag_\" + str(i) ] = (matrix[\"date_item_avg_item_price_lag_\" + str(i)]- matrix[\"item_avg_item_price\"] )/ matrix[\"item_avg_item_price\"]\n",
+    "\n",
+    "def select_trends(row) :\n",
+    "    for i in lags:\n",
+    "        if row[\"delta_price_lag_\" + str(i)]:\n",
+    "            return row[\"delta_price_lag_\" + str(i)]\n",
+    "    return 0\n",
+    "\n",
+    "matrix[\"delta_price_lag\"] = matrix.apply(select_trends, axis = 1)\n",
+    "matrix[\"delta_price_lag\"] = matrix.delta_price_lag.astype( np.float16 )\n",
+    "matrix[\"delta_price_lag\"].fillna( 0 ,inplace = True)\n",
+    "\n",
+    "features_to_drop = [\"item_avg_item_price\", \"date_item_avg_item_price\"]\n",
+    "for i in lags:\n",
+    "    features_to_drop.append(\"date_item_avg_item_price_lag_\" + str(i) )\n",
+    "    features_to_drop.append(\"delta_price_lag_\" + str(i) )\n",
+    "matrix.drop(features_to_drop, axis = 1, inplace = True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:23:54.480381Z",
+     "iopub.status.busy": "2021-06-18T06:23:54.479338Z",
+     "iopub.status.idle": "2021-06-18T06:24:13.476546Z",
+     "shell.execute_reply": "2021-06-18T06:24:13.475594Z"
+    },
+    "papermill": {
+     "duration": 19.055073,
+     "end_time": "2021-06-18T06:24:13.476697",
+     "exception": false,
+     "start_time": "2021-06-18T06:23:54.421624",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "group = df_train.groupby( [\"date_block_num\",\"shop_id\"] ).agg({\"revenue\": [\"sum\"] })\n",
+    "group.columns = [\"date_shop_revenue\"]\n",
+    "group.reset_index(inplace = True)\n",
+    "\n",
+    "matrix = matrix.merge( group , on = [\"date_block_num\", \"shop_id\"], how = \"left\" )\n",
+    "matrix['date_shop_revenue'] = matrix['date_shop_revenue'].astype(np.float32)\n",
+    "\n",
+    "group = group.groupby([\"shop_id\"]).agg({ \"date_block_num\":[\"mean\"] })\n",
+    "group.columns = [\"shop_avg_revenue\"]\n",
+    "group.reset_index(inplace = True )\n",
+    "\n",
+    "matrix = matrix.merge( group, on = [\"shop_id\"], how = \"left\" )\n",
+    "matrix[\"shop_avg_revenue\"] = matrix.shop_avg_revenue.astype(np.float32)\n",
+    "matrix[\"delta_revenue\"] = (matrix['date_shop_revenue'] - matrix['shop_avg_revenue']) / matrix['shop_avg_revenue']\n",
+    "matrix[\"delta_revenue\"] = matrix[\"delta_revenue\"]. astype(np.float32)\n",
+    "\n",
+    "matrix = lag_feature(matrix, [1], [\"delta_revenue\"])\n",
+    "matrix[\"delta_revenue_lag_1\"] = matrix[\"delta_revenue_lag_1\"].astype(np.float32)\n",
+    "matrix.drop( [\"date_shop_revenue\", \"shop_avg_revenue\", \"delta_revenue\"] ,axis = 1, inplace = True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:13.575165Z",
+     "iopub.status.busy": "2021-06-18T06:24:13.574527Z",
+     "iopub.status.idle": "2021-06-18T06:24:13.859665Z",
+     "shell.execute_reply": "2021-06-18T06:24:13.860199Z"
+    },
+    "papermill": {
+     "duration": 0.335849,
+     "end_time": "2021-06-18T06:24:13.860409",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:13.524560",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "matrix[\"month\"] = matrix[\"date_block_num\"] % 12\n",
+    "days = pd.Series([31,28,31,30,31,30,31,31,30,31,30,31])\n",
+    "matrix[\"days\"] = matrix[\"month\"].map(days).astype(np.int8)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:13.966321Z",
+     "iopub.status.busy": "2021-06-18T06:24:13.965352Z",
+     "iopub.status.idle": "2021-06-18T06:24:16.184041Z",
+     "shell.execute_reply": "2021-06-18T06:24:16.183345Z"
+    },
+    "papermill": {
+     "duration": 2.273844,
+     "end_time": "2021-06-18T06:24:16.184207",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:13.910363",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "matrix[\"item_shop_first_sale\"] = matrix[\"date_block_num\"] - matrix.groupby([\"item_id\",\"shop_id\"])[\"date_block_num\"].transform('min')\n",
+    "matrix[\"item_first_sale\"] = matrix[\"date_block_num\"] - matrix.groupby([\"item_id\"])[\"date_block_num\"].transform('min')\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:16.287041Z",
+     "iopub.status.busy": "2021-06-18T06:24:16.286403Z",
+     "iopub.status.idle": "2021-06-18T06:24:17.505334Z",
+     "shell.execute_reply": "2021-06-18T06:24:17.504628Z"
+    },
+    "papermill": {
+     "duration": 1.272693,
+     "end_time": "2021-06-18T06:24:17.505481",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:16.232788",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\n",
+    "matrix = matrix[matrix[\"date_block_num\"] > 3]\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:17.624838Z",
+     "iopub.status.busy": "2021-06-18T06:24:17.607188Z",
+     "iopub.status.idle": "2021-06-18T06:24:17.630482Z",
+     "shell.execute_reply": "2021-06-18T06:24:17.629939Z"
+    },
+    "papermill": {
+     "duration": 0.076971,
+     "end_time": "2021-06-18T06:24:17.630620",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:17.553649",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "matrix.head().T"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "matrix.to_pickle('data2.pkl')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:17.735873Z",
+     "iopub.status.busy": "2021-06-18T06:24:17.735186Z",
+     "iopub.status.idle": "2021-06-18T06:24:18.211298Z",
+     "shell.execute_reply": "2021-06-18T06:24:18.210630Z"
+    },
+    "papermill": {
+     "duration": 0.530326,
+     "end_time": "2021-06-18T06:24:18.211456",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:17.681130",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "data = matrix.copy()\n",
+    "del matrix\n",
+    "gc.collect()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:18.316074Z",
+     "iopub.status.busy": "2021-06-18T06:24:18.315234Z",
+     "iopub.status.idle": "2021-06-18T06:24:18.342590Z",
+     "shell.execute_reply": "2021-06-18T06:24:18.342052Z"
+    },
+    "papermill": {
+     "duration": 0.081279,
+     "end_time": "2021-06-18T06:24:18.342726",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:18.261447",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "data[data[\"date_block_num\"]==34].shape"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = pd.read_pickle('demo/data/data.pkl')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "data = data[[\r\n",
+    "    'date_block_num',\r\n",
+    "    'shop_id',\r\n",
+    "    'item_id',\r\n",
+    "    'item_cnt_month',\r\n",
+    "    'city_code',\r\n",
+    "    'item_category_id',\r\n",
+    "    'type_code',\r\n",
+    "    'subtype_code',\r\n",
+    "    'item_cnt_month_lag_1',\r\n",
+    "    'item_cnt_month_lag_2',\r\n",
+    "    'item_cnt_month_lag_3',\r\n",
+    "    'item_cnt_month_lag_6',\r\n",
+    "    'item_cnt_month_lag_12',\r\n",
+    "    'date_avg_item_cnt_lag_1',\r\n",
+    "    'date_item_avg_item_cnt_lag_1',\r\n",
+    "    'date_item_avg_item_cnt_lag_2',\r\n",
+    "    'date_item_avg_item_cnt_lag_3',\r\n",
+    "    'date_item_avg_item_cnt_lag_6',\r\n",
+    "    'date_item_avg_item_cnt_lag_12',\r\n",
+    "    'date_shop_avg_item_cnt_lag_1',\r\n",
+    "    'date_shop_avg_item_cnt_lag_2',\r\n",
+    "    'date_shop_avg_item_cnt_lag_3',\r\n",
+    "    'date_shop_avg_item_cnt_lag_6',\r\n",
+    "    'date_shop_avg_item_cnt_lag_12',\r\n",
+    "    'date_cat_avg_item_cnt_lag_1',\r\n",
+    "    'date_shop_cat_avg_item_cnt_lag_1',\r\n",
+    "    # 'date_shop_type_avg_item_cnt_lag_1',\r\n",
+    "    # 'date_shop_subtype_avg_item_cnt_lag_1',\r\n",
+    "    'date_city_avg_item_cnt_lag_1',\r\n",
+    "    'date_item_city_avg_item_cnt_lag_1',\r\n",
+    "    # 'date_type_avg_item_cnt_lag_1',\r\n",
+    "    # 'date_subtype_avg_item_cnt_lag_1',\r\n",
+    "    'delta_price_lag',\r\n",
+    "    # 'delta_revenue_lag',\r\n",
+    "    'month',\r\n",
+    "    'days',\r\n",
+    "    'item_shop_last_sale',\r\n",
+    "    'item_last_sale',\r\n",
+    "    'item_shop_first_sale',\r\n",
+    "    'item_first_sale',\r\n",
+    "]]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:18.450807Z",
+     "iopub.status.busy": "2021-06-18T06:24:18.450121Z",
+     "iopub.status.idle": "2021-06-18T06:24:21.223346Z",
+     "shell.execute_reply": "2021-06-18T06:24:21.222764Z"
+    },
+    "papermill": {
+     "duration": 2.830625,
+     "end_time": "2021-06-18T06:24:21.223487",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:18.392862",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "X_train = data[data.date_block_num < 33].drop(['item_cnt_month'], axis=1)\n",
+    "Y_train = data[data.date_block_num < 33]['item_cnt_month']\n",
+    "X_valid = data[data.date_block_num == 33].drop(['item_cnt_month'], axis=1)\n",
+    "Y_valid = data[data.date_block_num == 33]['item_cnt_month']\n",
+    "X_test = data[data.date_block_num == 34].drop(['item_cnt_month'], axis=1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:21.329333Z",
+     "iopub.status.busy": "2021-06-18T06:24:21.328676Z",
+     "iopub.status.idle": "2021-06-18T06:24:21.548895Z",
+     "shell.execute_reply": "2021-06-18T06:24:21.548342Z"
+    },
+    "papermill": {
+     "duration": 0.274835,
+     "end_time": "2021-06-18T06:24:21.549044",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:21.274209",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "Y_train = Y_train.clip(0, 20)\n",
+    "Y_valid = Y_valid.clip(0, 20)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:21.811577Z",
+     "iopub.status.busy": "2021-06-18T06:24:21.810632Z",
+     "iopub.status.idle": "2021-06-18T06:24:21.813547Z",
+     "shell.execute_reply": "2021-06-18T06:24:21.812923Z"
+    },
+    "papermill": {
+     "duration": 0.214287,
+     "end_time": "2021-06-18T06:24:21.813688",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:21.599401",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "del data\n",
+    "gc.collect();"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# import optuna\r\n",
+    "# from sklearn.metrics import mean_squared_error"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# def objective(trial, X_train, Y_train, X_valid, Y_valid):\r\n",
+    "    \r\n",
+    "#     param = {\r\n",
+    "#         'tree_method':'gpu_hist',  # Use GPU acceleration\r\n",
+    "#         'lambda': trial.suggest_loguniform(\r\n",
+    "#             'lambda', 1e-3, 10.0\r\n",
+    "#         ),\r\n",
+    "#         'alpha': trial.suggest_loguniform(\r\n",
+    "#             'alpha', 1e-3, 10.0\r\n",
+    "#         ),\r\n",
+    "#         'colsample_bytree': trial.suggest_categorical(\r\n",
+    "#             'colsample_bytree', [0.5,0.6,0.7,0.8,0.9,1.0]\r\n",
+    "#         ),\r\n",
+    "#         'subsample': trial.suggest_categorical(\r\n",
+    "#             'subsample', [0.6,0.7,0.8,1.0]\r\n",
+    "#         ),\r\n",
+    "#         'learning_rate': trial.suggest_categorical(\r\n",
+    "#             'learning_rate', [0.008,0.009,0.01,0.012,0.014,0.016,0.018, 0.02]\r\n",
+    "#         ),\r\n",
+    "#         'n_estimators': trial.suggest_categorical(\r\n",
+    "#             \"n_estimators\", [150, 200, 300, 3000]\r\n",
+    "#         ),\r\n",
+    "#         'max_depth': trial.suggest_categorical(\r\n",
+    "#             'max_depth', [4,5,7,9,11,13,15,17]\r\n",
+    "#         ),\r\n",
+    "#         'random_state': 42,\r\n",
+    "#         'min_child_weight': trial.suggest_int(\r\n",
+    "#             'min_child_weight', 1, 300\r\n",
+    "#         ),\r\n",
+    "#     }\r\n",
+    "#     model = XGBRegressor(**param)  \r\n",
+    "    \r\n",
+    "#     model.fit(\r\n",
+    "#         X_train, \r\n",
+    "#         Y_train, \r\n",
+    "#         eval_metric=\"rmse\", \r\n",
+    "#         eval_set=[(X_train, Y_train), (X_valid, Y_valid)], \r\n",
+    "#         verbose=True, \r\n",
+    "#         early_stopping_rounds = 100)\r\n",
+    "    \r\n",
+    "#     preds = model.predict(X_valid)\r\n",
+    "    \r\n",
+    "#     rmse = mean_squared_error(Y_valid, preds,squared=False)\r\n",
+    "    \r\n",
+    "#     return rmse"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# study = optuna.create_study(direction='minimize')\r\n",
+    "# # study.optimize(objective, n_trials=5)\r\n",
+    "# study.optimize(lambda trial : objective(trial, X_train, Y_train, X_valid, Y_valid), n_trials=5)\r\n",
+    "# print('Number of finished trials:', len(study.trials))\r\n",
+    "# print('Best trial:', study.best_trial.params)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# finally plot best parameters\r\n",
+    "# study.best_params"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# best_params = study.best_params\r\n",
+    "# best_params['tree_method'] = 'gpu_hist'\r\n",
+    "# best_params['random_state'] = 42\r\n",
+    "\r\n",
+    "# clf = XGBRegressor(**(best_params))\r\n",
+    "\r\n",
+    "# clf.fit(X_train, Y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# from joblib import dump, load\r\n",
+    "# dump(clf, 'xgb_optuna.joblib') "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Y_pred = clf.predict(X_valid).clip(0, 20)\r\n",
+    "# Y_test = clf.predict(X_test).clip(0, 20)\r\n",
+    "\r\n",
+    "# submission = pd.DataFrame({\r\n",
+    "#     \"ID\": df_test.index, \r\n",
+    "#     \"item_cnt_month\": Y_test\r\n",
+    "# })\r\n",
+    "# submission.to_csv('submission.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# from xgboost import plot_importance\r\n",
+    "\r\n",
+    "# def plot_features(booster, figsize):    \r\n",
+    "#     fig, ax = plt.subplots(1,1,figsize=figsize)\r\n",
+    "#     return plot_importance(booster=booster, ax=ax)\r\n",
+    "\r\n",
+    "# plot_features(clf, (10,14))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T06:24:21.921663Z",
+     "iopub.status.busy": "2021-06-18T06:24:21.920987Z",
+     "iopub.status.idle": "2021-06-18T07:06:12.815489Z",
+     "shell.execute_reply": "2021-06-18T07:06:12.814680Z"
+    },
+    "papermill": {
+     "duration": 2510.950976,
+     "end_time": "2021-06-18T07:06:12.815638",
+     "exception": false,
+     "start_time": "2021-06-18T06:24:21.864662",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "\r\n",
+    "\r\n",
+    "from xgboost import XGBRegressor\r\n",
+    "model = XGBRegressor(\r\n",
+    "    max_depth=6,\r\n",
+    "    n_estimators=1000,\r\n",
+    "    min_child_weight=26, \r\n",
+    "    colsample_bytree=0.8, \r\n",
+    "    subsample=0.8, \r\n",
+    "    eta=0.1,\r\n",
+    "    alpha=0.170,\r\n",
+    "    tree_method='gpu_hist',\r\n",
+    "    seed=42)\r\n",
+    "\r\n",
+    "model.fit(\r\n",
+    "    X_train, \r\n",
+    "    Y_train, \r\n",
+    "    eval_metric=\"rmse\", \r\n",
+    "    eval_set=[(X_train, Y_train), (X_valid, Y_valid)], \r\n",
+    "    verbose=True, \r\n",
+    "    early_stopping_rounds = 20)\r\n",
+    "\r\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T07:06:12.989645Z",
+     "iopub.status.busy": "2021-06-18T07:06:12.989007Z",
+     "iopub.status.idle": "2021-06-18T07:06:14.624704Z",
+     "shell.execute_reply": "2021-06-18T07:06:14.623541Z"
+    },
+    "papermill": {
+     "duration": 1.726073,
+     "end_time": "2021-06-18T07:06:14.624908",
+     "exception": false,
+     "start_time": "2021-06-18T07:06:12.898835",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "Y_pred = model.predict(X_valid).clip(0, 20)\r\n",
+    "Y_test = model.predict(X_test).clip(0, 20)\r\n",
+    "\r\n",
+    "submission = pd.DataFrame({\r\n",
+    "    \"ID\": df_test.index, \r\n",
+    "    \"item_cnt_month\": Y_test\r\n",
+    "})\r\n",
+    "submission.to_csv('submission.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2021-06-18T07:06:14.797784Z",
+     "iopub.status.busy": "2021-06-18T07:06:14.796707Z",
+     "iopub.status.idle": "2021-06-18T07:06:16.636520Z",
+     "shell.execute_reply": "2021-06-18T07:06:16.635974Z"
+    },
+    "papermill": {
+     "duration": 1.930567,
+     "end_time": "2021-06-18T07:06:16.636657",
+     "exception": false,
+     "start_time": "2021-06-18T07:06:14.706090",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# from xgboost import plot_importance\r\n",
+    "\r\n",
+    "# def plot_features(booster, figsize):    \r\n",
+    "#     fig, ax = plt.subplots(1,1,figsize=figsize)\r\n",
+    "#     return plot_importance(booster=booster, ax=ax)\r\n",
+    "\r\n",
+    "# plot_features(model, (10,14))"
+   ]
+  }
+ ],
+ "metadata": {
+  "interpreter": {
+   "hash": "9382f623385d8775b85b2066d38e69c1be20a7b55a95d957b1ba8434f03dd0d7"
+  },
+  "kernelspec": {
+   "display_name": "Python 3.6.13 64-bit ('kaggle': conda)",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.6.13"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 3068.216587,
+   "end_time": "2021-06-18T07:06:18.233028",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2021-06-18T06:15:10.016441",
+   "version": "2.2.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
